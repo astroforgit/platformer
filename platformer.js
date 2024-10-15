@@ -199,7 +199,7 @@ class Game {
     }
 
     // Tile collision detection
-    let tx = p2t(entity.x);d
+    let tx = p2t(entity.x);
     let ty = p2t(entity.y);
     let nx = entity.x % TILE;
     let ny = entity.y % TILE;
