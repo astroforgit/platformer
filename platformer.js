@@ -20,6 +20,7 @@ const COLOR = {
 };
 const COLORS = [COLOR.YELLOW, COLOR.BRICK, COLOR.PINK, COLOR.PURPLE, COLOR.GREY];
 const KEY = { SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 };
+const GRAVITY_MODE = { DOWN: 0, RIGHT: 1 }; // add a new mode for right gravity
 
 // Utility functions
 const timestamp = () => window.performance && window.performance.now ? window.performance.now() : new Date().getTime();
@@ -44,6 +45,7 @@ class Game {
     this.monsters = [];
     this.treasure = [];
     this.cells = [];
+    this.gravityMode = GRAVITY_MODE.DOWN; 
     this.canvas = document.getElementById('canvas');
     this.ctx = this.canvas.getContext('2d');
     this.init();
@@ -83,6 +85,10 @@ class Game {
         this.player.jump = down;
         ev.preventDefault();
         break;
+      case 71: // 'G' key
+        this.gravityMode = (this.gravityMode === GRAVITY_MODE.DOWN) ? GRAVITY_MODE.RIGHT : GRAVITY_MODE.DOWN;
+        ev.preventDefault();
+        break;  
     }
   }
 
@@ -167,25 +173,50 @@ class Game {
 
     // Apply acceleration
     entity.ddx = 0;
-    entity.ddy = entity.gravity;
+    entity.ddy = 0;
+    if (this.gravityMode === GRAVITY_MODE.DOWN) {
+        entity.ddy = entity.gravity;
+        if (entity.left) {
+            entity.ddx -= accel;
+        } else if (wasLeft) {
+            entity.ddx += friction;
+        }
 
-    if (entity.left) {
-        entity.ddx -= accel;
-    } else if (wasLeft) {
-        entity.ddx += friction;
-    }
+        if (entity.right) {
+            entity.ddx += accel;
+        } else if (wasRight) {
+            entity.ddx -= friction;
+        }
 
-    if (entity.right) {
-        entity.ddx += accel;
-    } else if (wasRight) {
-        entity.ddx -= friction;
-    }
+        // Jumping logic
+        if (entity.jump && !entity.jumping && !falling) {
+            entity.ddy -= entity.impulse;  // Apply impulse force for jump
+            entity.jumping = true;
+        }
+      } 
+      if (this.gravityMode === GRAVITY_MODE.RIGHT) {
+        entity.ddx = 0;
+        entity.ddy = 0;
+        entity.ddx = entity.gravity;
 
-    // Jumping logic
-    if (entity.jump && !entity.jumping && !falling) {
-        entity.ddy -= entity.impulse;  // Apply impulse force for jump
-        entity.jumping = true;
-    }
+        if (entity.left) {
+            entity.ddy -= accel;
+        } else if (wasLeft) {
+            entity.ddy += friction;
+        }
+
+        if (entity.right) {
+            entity.ddy += accel;
+        } else if (wasRight) {
+            entity.ddy -= friction;
+        }  
+
+        // Jumping logic
+        if (entity.jump && !entity.jumping && !falling) {
+            entity.ddx += entity.impulse;  // Apply impulse force for jump
+            entity.jumping = true;
+        }
+      }
 
     // Apply physics to position
     entity.x += dt * entity.dx;
@@ -199,7 +230,7 @@ class Game {
     }
 
     // Tile collision detection
-    let tx = p2t(entity.x);d
+    let tx = p2t(entity.x);
     let ty = p2t(entity.y);
     let nx = entity.x % TILE;
     let ny = entity.y % TILE;
