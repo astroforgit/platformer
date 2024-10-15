@@ -120,19 +120,58 @@ class Game {
     entity.dy = Game.bound(entity.dy + (this.dt * entity.ddy), -entity.maxdy, entity.maxdy);
 
     if ((wasleft && (entity.dx > 0)) || (wasright && (entity.dx < 0))) {
-      entity.dx = 0;
+      entity.dx = 0; // clamp at zero to prevent friction from making us jiggle side to side
     }
 
-    const tx = this.p2t(entity.x);
-    const ty = this.p2t(entity.y);
-    const nx = entity.x % Game.TILE;
-    const ny = entity.y % Game.TILE;
-    const cell = this.tcell(tx, ty);
-    const cellright = this.tcell(tx + 1, ty);
-    const celldown = this.tcell(tx, ty + 1);
-    const celldiag = this.tcell(tx + 1, ty + 1);
+    let tx = this.p2t(entity.x);
+    let ty = this.p2t(entity.y);
+    let nx = entity.x % Game.TILE;
+    let ny = entity.y % Game.TILE;
+    let cell = this.tcell(tx, ty);
+    let cellright = this.tcell(tx + 1, ty);
+    let celldown = this.tcell(tx, ty + 1);
+    let celldiag = this.tcell(tx + 1, ty + 1);
 
-    // ... (rest of the updateEntity logic)
+    if (entity.dy > 0) {
+      if ((celldown && !cell) || (celldiag && !cellright && nx)) {
+        entity.y = this.t2p(ty);
+        entity.dy = 0;
+        entity.falling = false;
+        entity.jumping = false;
+        ny = 0;
+      }
+    } else if (entity.dy < 0) {
+      if ((cell && !celldown) || (cellright && !celldiag && nx)) {
+        entity.y = this.t2p(ty + 1);
+        entity.dy = 0;
+        cell = celldown;
+        cellright = celldiag;
+        ny = 0;
+      }
+    }
+
+    if (entity.dx > 0) {
+      if ((cellright && !cell) || (celldiag && !celldown && ny)) {
+        entity.x = this.t2p(tx);
+        entity.dx = 0;
+      }
+    } else if (entity.dx < 0) {
+      if ((cell && !cellright) || (celldown && !celldiag && ny)) {
+        entity.x = this.t2p(tx + 1);
+        entity.dx = 0;
+      }
+    }
+
+    if (entity.monster) {
+      if (entity.left && (cell || !celldown)) {
+        entity.left = false;
+        entity.right = true;
+      }      
+      else if (entity.right && (cellright || !celldiag)) {
+        entity.right = false;
+        entity.left = true;
+      }
+    }
 
     entity.falling = !(celldown || (nx && celldiag));
   }
